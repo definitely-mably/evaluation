@@ -1,6 +1,4 @@
-FROM registry.cn-hangzhou.aliyuncs.com/library/openjdk:17-alpine
-
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && apk update && apk add busybox-extras
+FROM openjdk:17-jdk-slim
 
 ADD gateway-service-1.0-SNAPSHOT.jar /app/gateway.jar
 
