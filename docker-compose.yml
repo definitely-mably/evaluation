@@ -1,0 +1,75 @@
+version: '3.8'
+
+networks:
+  net:
+    external: true
+
+services:
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    restart: always
+    ports:
+      - "7573:8080"
+    depends_on:
+      nacos2:
+        condition: service_started
+      mysql8:
+        condition: service_started
+      redis6:
+        condition: service_started
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    restart: always
+    environment:
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-Ov23liBsUpb04gn1Vh7x}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-8e4e6d2eb808562b21583b839a3513dc5762bfa1}
+      - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI:-http://gateway-service:8080/api/users/github/callback}
+    depends_on:
+      nacos2:
+        condition: service_started
+      mysql8:
+        condition: service_started
+      redis6:
+        condition: service_started
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    restart: always
+    depends_on:
+      nacos2:
+        condition: service_started
+      mysql8:
+        condition: service_started
+      redis6:
+        condition: service_started
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
