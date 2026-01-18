@@ -1,9 +1,9 @@
-FROM openjdk:17-slim
+FROM openjdk:17-alpine
 
-WORKDIR /app
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && apk update && apk add busybox-extras
 
-COPY target/product-service-1.0-SNAPSHOT-encrypted.jar /app/
+ADD product-service-1.0-SNAPSHOT-encrypted.jar /app/product-service.jar
 
 EXPOSE 8082
 
-ENTRYPOINT ["java", "-javaagent:product-service-1.0-SNAPSHOT-encrypted.jar", "-jar", "product-service-1.0-SNAPSHOT-encrypted.jar", "--spring.profiles.active=prod"]
+CMD ["java", "-javaagent:/app/product-service.jar", "-jar", "/app/product-service.jar", "--spring.profiles.active=prod"]

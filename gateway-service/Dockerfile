@@ -1,9 +1,9 @@
-FROM openjdk:17-slim
+FROM openjdk:17-alpine
 
-WORKDIR /app
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && apk update && apk add busybox-extras
 
-COPY target/gateway-service-1.0-SNAPSHOT.jar /app/
+ADD gateway-service-1.0-SNAPSHOT.jar /app/gateway.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "gateway-service-1.0-SNAPSHOT.jar", "--spring.profiles.active=prod"]
+CMD ["java", "-jar", "/app/gateway.jar", "--spring.profiles.active=prod"]
