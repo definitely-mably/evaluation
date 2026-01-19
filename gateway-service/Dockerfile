@@ -1,4 +1,4 @@
-FROM openjdk:17-jdk-slim
+FROM eclipse-temurin:17-jdk
 
 ADD gateway-service-1.0-SNAPSHOT.jar /app/gateway.jar
 

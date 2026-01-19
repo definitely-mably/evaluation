@@ -84,48 +84,97 @@ GITHUB_REDIRECT_URI=http://localhost:7573/api/users/github/callback
 
 ## 部署步骤
 
-### 1. 创建 Docker 网络
+### 前置要求
+
+- Docker 20.10+
+- Docker Compose V2（使用 `docker compose` 命令，不是 `docker-compose`）
+- 至少 4GB 可用内存
+
+### 环境配置
+
+**重要**：部署前必须配置 GitHub OAuth 回调地址，否则 GitHub 登录将无法正常工作。
+
+#### 1. 配置 GitHub OAuth 应用
+
+创建 GitHub OAuth App：
+
+1. 访问 https://github.com/settings/developers
+2. 点击 "New OAuth App"
+3. 填写应用信息：
+   - **Application name**: 任意名称（如：Evaluation System）
+   - **Homepage URL**: `http://192.168.101.132:7573`
+   - **Authorization callback URL**: `http://192.168.101.132:7573/api/users/github/callback`
+4. 创建后获得 **Client ID** 和 **Client Secret**
+
+**注意**：请将 `192.168.101.132` 替换为你的服务器实际 IP 地址。如果不确定服务器 IP，可以在服务器上运行 `ip addr` 或 `ifconfig` 命令查看。
+
+#### 2. 创建 .env 文件
+
+在项目根目录创建 `.env` 文件：
 
 ```bash
-docker network create net
+# 复制示例文件（可选）
+cp .env.example .env
+
+# 或者直接创建
+cat > .env << 'EOF'
+# GitHub OAuth 配置
+GITHUB_CLIENT_ID=你的_CLIENT_ID
+GITHUB_CLIENT_SECRET=你的_CLIENT_SECRET
+GITHUB_REDIRECT_URI=http://192.168.101.132:7573/api/users/github/callback
+EOF
 ```
 
-### 2. 启动基础服务
+**环境变量配置参考**（示例）：
+```env
+GITHUB_CLIENT_ID=Ov23liBsUpb04gn1Vh7x
+GITHUB_CLIENT_SECRET=8e4e6d2eb808562b21583b839a3513dc5762bfa1
+GITHUB_REDIRECT_URI=http://192.168.101.132:7573/api/users/github/callback
+```
+
+**说明**：
+- 请将 `192.168.101.132` 替换为你的服务器实际 IP 地址
+- 如果不创建 `.env` 文件，会使用内置的默认配置（仅用于测试，不建议用于生产环境）
+
+### 一键启动
 
 ```bash
-docker-compose -f docker-compose.env.yml up -d
+# 启动所有服务
+docker compose up -d
 ```
 
-等待 MySQL、Redis、LDAP、Nacos 服务启动完成（约 1-2 分钟）。
+等待 1-2 分钟，所有服务启动完成。
 
-### 3. 启动应用服务
+### 查看服务状态
 
 ```bash
-docker-compose up -d
+docker compose ps
 ```
 
-### 4. 查看服务状态
+预期输出：所有服务状态为 `Up`
 
-```bash
-docker-compose ps
-```
-
-### 5. 查看日志
+### 查看日志
 
 ```bash
 # 查看所有服务日志
-docker-compose logs -f
+docker compose logs -f
 
 # 查看特定服务日志
-docker-compose logs -f gateway-service
-docker-compose logs -f user-service
+docker compose logs -f gateway-service
+docker compose logs -f user-service
+docker compose logs -f product-service
 ```
 
 ## 服务访问
 
 ### 对外访问
 
-- **API 网关**: `http://localhost:7573`
+- **API 网关**: `http://localhost:7573` 或 `http://<服务器IP>:7573`
+- **Nacos 控制台**: `http://localhost:8848/nacos`（用户名: nacos, 密码: nacos）
+
+**注意**：
+- 在服务器内部使用 `localhost` 访问
+- 在物理机或其他设备访问时，使用服务器的实际 IP 地址（如 192.168.101.132）
 
 ### 内部服务（仅容器网络访问）
 
@@ -161,12 +210,14 @@ curl -X POST http://localhost:7573/api/users/github/login -H "Content-Type: appl
   "code": 200,
   "message": "Success",
   "data": {
-    "authorizeUrl": "https://github.com/login/oauth/authorize?client_id=xxx&redirect_uri=http://localhost:7573/api/users/github/callback&state=9240582&scope=user:email"
+    "authorizeUrl": "https://github.com/login/oauth/authorize?client_id=xxx&redirect_uri=http://192.168.101.132:7573/api/users/github/callback&state=9240582&scope=user:email"
   }
 }
 ```
 
 浏览器访问 authorizeUrl，授权后自动回调到 `/api/users/github/callback?code=xxx&state=xxx`
+
+**重要**：返回的 `authorizeUrl` 中的 `redirect_uri` 必须与 GitHub OAuth App 中配置的回调地址完全一致。如果部署在虚拟机，需要在物理机浏览器中访问时确保回调地址使用虚拟机的实际 IP 地址。
 
 ### 3. LDAP 登录
 
